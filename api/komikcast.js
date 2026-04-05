@@ -1,14 +1,16 @@
+import { KOMIKCAST } from './_utils.js';
+
 export const config = { runtime: 'edge' };
 
 export default async function handler(req) {
   const { searchParams } = new URL(req.url);
   const path = searchParams.get('path') || '/series?includeMeta=true&sort=latest&sortOrder=desc&take=12&page=1';
 
-  const response = await fetch(`https://be.komikcast.fit${path}`, {
+  const response = await fetch(`${KOMIKCAST}${path}`, {
     headers: {
-      'Origin': 'https://v1.komikcast.fit',
-      'Referer': 'https://v1.komikcast.fit/',
-      'Accept': 'application/json',
+      'Origin':        'https://v1.komikcast.fit',
+      'Referer':       'https://v1.komikcast.fit/',
+      'Accept':        'application/json',
       'Authorization': `Bearer ${process.env.KOMIKCAST_TOKEN}`,
     },
   });
@@ -16,9 +18,9 @@ export default async function handler(req) {
   const data = await response.text();
 
   return new Response(data, {
-    headers: { 
+    headers: {
       'Access-Control-Allow-Origin': '*',
-      'Content-Type': 'application/json',
+      'Content-Type':                'application/json',
     },
   });
 }
