@@ -1,7 +1,7 @@
 const BASE = 'https://api.shngm.io';
 
 export default async function handler(req, res) {
-  const path = req.query.path || '/v1/manga/list?page=1&page_size=24';
+  const path = req.query.path || '/v1/manga/list?page=1&page_size=30&sort=latest';
 
   try {
     const response = await fetch(`${BASE}${path}`, {
