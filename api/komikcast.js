@@ -2,7 +2,7 @@ export const config = { runtime: 'edge' };
 
 export default async function handler(req) {
   const { searchParams } = new URL(req.url);
-  const path = searchParams.get('path') || '/series?take=24&page=1';
+  const path = searchParams.get('path') || '/series?includeMeta=true&sort=latest&sortOrder=desc&take=12&page=1';
 
   const response = await fetch(`https://be.komikcast.fit${path}`, {
     headers: {
