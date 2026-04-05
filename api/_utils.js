@@ -90,8 +90,8 @@ export async function fetchKiryuu({ page, pageSize, orderby, meta_key, search })
   const j = await r.json();
 
   return (Array.isArray(j) ? j : []).map(item => {
-    const cls = Array.isArray(item.class_list) 
-      ? item.class_list 
+    const cls = Array.isArray(item.class_list)
+      ? item.class_list
       : item.class_list && typeof item.class_list === 'object'
         ? Object.values(item.class_list)
         : [];
@@ -119,9 +119,10 @@ export function deduplicate(comics) {
     if (!existing) {
       map.set(key, c);
     } else {
-      const te = existing.updatedAt ? new Date(existing.updatedAt).getTime() : 0;
-      const tc = c.updatedAt ? new Date(c.updatedAt).getTime() : 0;
-      if (tc > te) map.set(key, c);
+      const te = existing.updatedAt ? new Date(existing.updatedAt).getTime() : Infinity;
+      const tc = c.updatedAt ? new Date(c.updatedAt).getTime() : Infinity;
+      // Pilih yang updatedAt paling kecil (paling duluan sampai)
+      if (tc < te) map.set(key, c);
     }
   }
   return [...map.values()];
