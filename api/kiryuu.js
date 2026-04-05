@@ -67,7 +67,17 @@ export default async function handler(req) {
     const response = await fetch(`${KIRYUU}${wpPath}`, { headers });
     const data     = await response.json();
 
-    return new Response(JSON.stringify(data), {
+    // Fix class_list — konversi object {} jadi array []
+    const fixed = Array.isArray(data) ? data.map(item => ({
+      ...item,
+      class_list: Array.isArray(item.class_list)
+        ? item.class_list
+        : item.class_list && typeof item.class_list === 'object'
+          ? Object.values(item.class_list)
+          : [],
+    })) : data;
+
+    return new Response(JSON.stringify(fixed), {
       status: response.status,
       headers: {
         'Access-Control-Allow-Origin': '*',
