@@ -1,0 +1,9 @@
+{
+  "functions": {
+    "api/*.js": {
+      "runtime": "nodejs24.x",
+      "memory": 512,
+      "maxDuration": 10
+    }
+  }
+}
