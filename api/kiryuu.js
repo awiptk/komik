@@ -12,15 +12,14 @@ export default async function handler(req, res) {
   };
 
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate');
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
 
   try {
     // Chapter list — return HTML, parse di sini
     if (action === 'chapter_list' && manga_id) {
       const url = `${AJAX}?manga_id=${manga_id}&page=999&action=chapter_list`;
-      const html = await fetch(url, { headers }).then(r => r.text());
+      const html = await fetch(url, { headers, cache: 'no-store' }).then(r => r.text());
 
-      // Parse chapter dari HTML
       const chapters = [];
       const linkRe = /href="(https:\/\/v2\.kiryuu\.to\/manga\/[^"]+)"/g;
       const nameRe = /<span>([^<]+)<\/span>/g;
@@ -41,9 +40,9 @@ export default async function handler(req, res) {
       return res.json({ data: chapters });
     }
 
-    // WP JSON API — catalog, detail, dll
-    const wpPath = path || '/wp-json/wp/v2/manga?per_page=24&page=1&_embed';
-    const response = await fetch(`${BASE}${wpPath}`, { headers });
+    // WP JSON API — default ke terbaru (orderby=modified)
+    const wpPath = path || '/wp-json/wp/v2/manga?per_page=24&page=1&orderby=modified&order=desc&_embed';
+    const response = await fetch(`${BASE}${wpPath}`, { headers, cache: 'no-store' });
     const data = await response.json();
 
     res.status(response.status).json(data);
