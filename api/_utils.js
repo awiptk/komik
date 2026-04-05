@@ -1,6 +1,6 @@
-const SHINIGAMI = 'https://api.shngm.io';
-const KIRYUU    = 'https://v2.kiryuu.to';
-const BASE_URL  = 'https://komik-mauve.vercel.app';
+export const SHINIGAMI = 'https://api.shngm.io';
+export const KIRYUU    = 'https://v2.kiryuu.to';
+export const KOMIKCAST = 'https://be.komikcast.fit';
 
 const SHN_HEADERS = {
   'Origin':     'https://c.shinigami.asia',
@@ -59,14 +59,14 @@ export async function fetchKomikcast({ page, pageSize, sort, query }) {
     path = `/series?take=${pageSize}&page=${page}&sort=${sort || 'latest'}&sortOrder=desc&includeMeta=true`;
   }
 
-  const url = `${BASE_URL}/api/komikcast?path=${encodeURIComponent(path)}`;
+  const url = `https://komik-mauve.vercel.app/api/komikcast?path=${encodeURIComponent(path)}`;
   const r = await fetch(url, { cache: 'no-store' });
   if (!r.ok) throw new Error(`Komikcast ${r.status}`);
   const j = await r.json();
 
   return (j.data || []).map(item => ({
     source:    'komikcast',
-    id:        String(item.id || ''),  // ✅ numeric id untuk chapter request
+    id:        String(item.id || ''),
     slug:      item.data?.slug || '',
     title:     item.data?.title || '',
     cover:     item.data?.coverImage || '',
