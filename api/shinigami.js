@@ -28,9 +28,10 @@ export default async function handler(req) {
       cache: 'no-store',
     });
 
-    const data = await response.json();
+    const text = await response.text();
+    console.log(response.status, text.slice(0, 300));
 
-    return new Response(JSON.stringify(data), {
+    return new Response(text, {
       status: response.status,
       headers: {
         'Content-Type':                'application/json',
