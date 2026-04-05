@@ -1,6 +1,6 @@
 import { SHINIGAMI } from './_utils.js';
 
-export const runtime = 'edge';
+export const config = { runtime: 'edge' };
 
 export default async function handler(req) {
   const { searchParams } = new URL(req.url);
