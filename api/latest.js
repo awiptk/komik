@@ -14,18 +14,20 @@ export default async function handler(req, res) {
       fetchKiryuu({ page, pageSize, orderby: 'modified' }),
     ]);
 
-    const all = [
-      ...(shn.status === 'fulfilled' ? shn.value : []),
-      ...(kc.status  === 'fulfilled' ? kc.value  : []),
-      ...(kry.status === 'fulfilled' ? kry.value : []),
-    ];
+    const shnList = shn.status === 'fulfilled' ? shn.value : [];
+    const kcList  = kc.status  === 'fulfilled' ? kc.value  : [];
+    const kryList = kry.status === 'fulfilled' ? kry.value : [];
 
-    const data = deduplicate(all).sort((a, b) => {
-      const ta = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
-      const tb = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
-      return tb - ta;
-    });
+    // interleave round-robin
+    const interleaved = [];
+    const maxLen = Math.max(shnList.length, kcList.length, kryList.length);
+    for (let i = 0; i < maxLen; i++) {
+      if (shnList[i]) interleaved.push(shnList[i]);
+      if (kcList[i])  interleaved.push(kcList[i]);
+      if (kryList[i]) interleaved.push(kryList[i]);
+    }
 
+    const data = deduplicate(interleaved);
     res.json({ data, hasNextPage: data.length >= pageSize });
   } catch (e) {
     res.status(500).json({ error: e.message });
