@@ -11,12 +11,13 @@ export default async function handler(req, res) {
         'Accept': 'application/json',
         'User-Agent': 'Mozilla/5.0',
       },
+      cache: 'no-store',
     });
 
     const data = await response.json();
 
     res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate');
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate'); // ← ganti ini
     res.status(response.status).json(data);
   } catch (e) {
     res.status(500).json({ error: e.message });
