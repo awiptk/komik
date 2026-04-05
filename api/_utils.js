@@ -96,7 +96,7 @@ export async function fetchKiryuu({ page, pageSize, orderby, meta_key, search })
       title:     item.title?.rendered || '',
       cover:     item._embedded?.['wp:featuredmedia']?.[0]?.source_url || '',
       status:    cls.includes('status-ongoing') ? 'ongoing' : cls.includes('status-completed') ? 'completed' : '',
-      updatedAt: item.modified || '',
+      updatedAt: item.modified ? item.modified + '+07:00' : '',
     };
   });
 }
