@@ -65,9 +65,11 @@ export default async function handler(req) {
     // WP JSON API
     const wpPath   = path || '/wp-json/wp/v2/manga?per_page=24&page=1&orderby=modified&order=desc&_embed';
     const response = await fetch(`${KIRYUU}${wpPath}`, { headers });
-    const data     = await response.text();
+    const text     = await response.text();
 
-    return new Response(data, {
+    console.log('size:', text.length, 'status:', response.status);
+
+    return new Response(text, {
       status: response.status,
       headers: {
         'Access-Control-Allow-Origin': '*',
