@@ -1,10 +1,7 @@
 import { SHINIGAMI } from './_utils.js';
 
-export const config = { runtime: 'edge' };
-
-export default async function handler(req) {
-  const { searchParams } = new URL(req.url);
-  const path = searchParams.get('path') || '/v1/manga/list?page=1&page_size=30&sort=latest';
+export default async function handler(req, res) {
+  const path = req.query.path || '/v1/manga/list?page=1&page_size=30&sort=latest';
 
   try {
     const response = await fetch(`${SHINIGAMI}${path}`, {
@@ -22,27 +19,16 @@ export default async function handler(req) {
         'sec-fetch-mode':     'cors',
         'sec-fetch-site':     'cross-site',
         'X-Requested-With':   'XMLHttpRequest',
-        'X-Forwarded-For':    '103.75.112.1',
-        'X-Real-IP':          '103.75.112.1',
       },
       cache: 'no-store',
     });
 
-    const text = await response.text();
-    console.log(response.status, text.slice(0, 300));
+    const data = await response.json();
 
-    return new Response(text, {
-      status: response.status,
-      headers: {
-        'Content-Type':                'application/json',
-        'Access-Control-Allow-Origin': '*',
-        'Cache-Control':               'no-store, no-cache, must-revalidate',
-      },
-    });
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+    res.status(response.status).json(data);
   } catch (e) {
-    return new Response(JSON.stringify({ error: e.message }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    res.status(500).json({ error: e.message });
   }
 }
