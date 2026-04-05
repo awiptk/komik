@@ -12,17 +12,13 @@ export default async function handler(req, res) {
         'Origin': 'https://v1.komikcast.fit',
         'Referer': 'https://v1.komikcast.fit/',
         'Accept': 'application/json, text/plain, */*',
-        'Accept-Language': 'id-ID,id;q=0.9,en;q=0.8',
         'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36',
-        'sec-fetch-dest': 'empty',
-        'sec-fetch-mode': 'cors',
-        'sec-fetch-site': 'same-site',
+        'Authorization': `Bearer ${process.env.KOMIKCAST_TOKEN}`,
       },
     });
 
     const text = await response.text();
 
-    // Debug: kalau bukan JSON, return raw text biar ketahuan isinya
     try {
       const data = JSON.parse(text);
       res.status(response.status).json(data);
