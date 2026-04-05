@@ -46,6 +46,7 @@ export async function fetchShinigami({ page, pageSize, sort, query }) {
     cover:     item.cover_portrait_url || item.cover_image_url || '',
     status:    item.status === 1 ? 'ongoing' : item.status === 2 ? 'completed' : '',
     updatedAt: item.updated_at || item.updatedAt || '',
+    url:       `https://c.shinigami.asia/series/${item.manga_id || item.mangaId || ''}`,
   }));
 }
 
@@ -65,12 +66,13 @@ export async function fetchKomikcast({ page, pageSize, sort, query }) {
 
   return (j.data || []).map(item => ({
     source:    'komikcast',
-    id:        item.data?.slug || '',
+    id:        String(item.id || ''),  // ✅ numeric id untuk chapter request
     slug:      item.data?.slug || '',
     title:     item.data?.title || '',
     cover:     item.data?.coverImage || '',
     status:    item.data?.status || '',
     updatedAt: item.updatedAt || '',
+    url:       `https://v1.komikcast.fit/series/${item.data?.slug || ''}`,
   }));
 }
 
@@ -97,6 +99,7 @@ export async function fetchKiryuu({ page, pageSize, orderby, meta_key, search })
       cover:     item._embedded?.['wp:featuredmedia']?.[0]?.source_url || '',
       status:    cls.includes('status-ongoing') ? 'ongoing' : cls.includes('status-completed') ? 'completed' : '',
       updatedAt: item.modified ? item.modified + '+07:00' : '',
+      url:       `https://v2.kiryuu.to/manga/${item.slug || ''}`,
     };
   });
 }
