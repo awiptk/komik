@@ -20,7 +20,12 @@ export default async function handler(req, res) {
       ...(kry.status === 'fulfilled' ? kry.value : []),
     ];
 
-    const data = deduplicate(all);
+    const data = deduplicate(all).sort((a, b) => {
+      const ta = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+      const tb = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+      return tb - ta;
+    });
+
     res.json({ data, hasNextPage: data.length >= pageSize });
   } catch (e) {
     res.status(500).json({ error: e.message });
