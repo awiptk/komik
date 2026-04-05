@@ -1,7 +1,24 @@
-export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.status(200).json({ 
-    tokenExists: !!process.env.KOMIKCAST_TOKEN,
-    tokenPreview: process.env.KOMIKCAST_TOKEN?.slice(0, 10) + '...'
+export const config = { runtime: 'edge' };
+
+export default async function handler(req) {
+  const { searchParams } = new URL(req.url);
+  const path = searchParams.get('path') || '/series?take=24&page=1';
+
+  const response = await fetch(`https://be.komikcast.fit${path}`, {
+    headers: {
+      'Origin': 'https://v1.komikcast.fit',
+      'Referer': 'https://v1.komikcast.fit/',
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${process.env.KOMIKCAST_TOKEN}`,
+    },
+  });
+
+  const data = await response.text();
+
+  return new Response(data, {
+    headers: { 
+      'Access-Control-Allow-Origin': '*',
+      'Content-Type': 'application/json',
+    },
   });
 }
