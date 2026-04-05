@@ -1,13 +1,14 @@
-const BASE = 'https://v2.kiryuu.to';
-const AJAX = `${BASE}/wp-admin/admin-ajax.php`;
+import { KIRYUU } from './_utils.js';
+
+const AJAX = `${KIRYUU}/wp-admin/admin-ajax.php`;
 
 export default async function handler(req, res) {
   const { path, action, manga_id } = req.query;
 
   const headers = {
-    'Origin': 'https://v2.kiryuu.to',
-    'Referer': 'https://v2.kiryuu.to/',
-    'Accept': 'application/json, text/html',
+    'Origin':     'https://v2.kiryuu.to',
+    'Referer':    'https://v2.kiryuu.to/',
+    'Accept':     'application/json, text/html',
     'User-Agent': 'Mozilla/5.0',
   };
 
@@ -15,12 +16,11 @@ export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
 
   try {
-    // Chapter list — resolve slug ke numeric ID kalau perlu
     if (action === 'chapter_list' && manga_id) {
       let numericId = manga_id;
 
       if (isNaN(manga_id)) {
-        const wpRes = await fetch(`${BASE}/wp-json/wp/v2/manga?slug[]=${manga_id}&_fields=id`, { headers, cache: 'no-store' });
+        const wpRes = await fetch(`${KIRYUU}/wp-json/wp/v2/manga?slug[]=${manga_id}&_fields=id`, { headers, cache: 'no-store' });
         const wpData = await wpRes.json();
         numericId = wpData?.[0]?.id;
         if (!numericId) return res.json({ data: [] });
@@ -40,7 +40,7 @@ export default async function handler(req, res) {
 
       links.forEach((link, i) => {
         chapters.push({
-          url: link,
+          url:  link,
           name: names[i] || `Chapter ${i + 1}`,
           date: dates[i] || '',
         });
@@ -49,9 +49,8 @@ export default async function handler(req, res) {
       return res.json({ data: chapters });
     }
 
-    // WP JSON API
     const wpPath = path || '/wp-json/wp/v2/manga?per_page=24&page=1&orderby=modified&order=desc&_embed';
-    const response = await fetch(`${BASE}${wpPath}`, { headers, cache: 'no-store' });
+    const response = await fetch(`${KIRYUU}${wpPath}`, { headers, cache: 'no-store' });
     const data = await response.json();
 
     res.status(response.status).json(data);
