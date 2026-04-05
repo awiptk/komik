@@ -1,19 +1,12 @@
 const SHINIGAMI = 'https://api.shngm.io';
-const KOMIKCAST = 'https://be.komikcast.fit';
 const KIRYUU    = 'https://v2.kiryuu.to';
+const BASE_URL  = 'https://komik-mauve.vercel.app';
 
 const SHN_HEADERS = {
   'Origin':     'https://c.shinigami.asia',
   'Referer':    'https://c.shinigami.asia/',
   'Accept':     'application/json',
   'User-Agent': 'Mozilla/5.0',
-};
-const KC_HEADERS = {
-  'Origin':          'https://v1.komikcast.fit',
-  'Referer':         'https://v1.komikcast.fit/',
-  'Accept':          'application/json',
-  'Accept-Language': 'en-US,en;q=0.9,id;q=0.8',
-  'User-Agent':      'Mozilla/5.0',
 };
 const KRY_HEADERS = {
   'Origin':     'https://v2.kiryuu.to',
@@ -57,15 +50,16 @@ export async function fetchShinigami({ page, pageSize, sort, query }) {
 }
 
 export async function fetchKomikcast({ page, pageSize, sort, query }) {
-  let url;
+  let path;
   if (query) {
     const filter = `title=like="${encodeURIComponent(query)}",nativeTitle=like="${encodeURIComponent(query)}"`;
-    url = `${KOMIKCAST}/series?take=${pageSize}&page=${page}&includeMeta=true&filter=${filter}`;
+    path = `/series?take=${pageSize}&page=${page}&includeMeta=true&filter=${filter}`;
   } else {
-    url = `${KOMIKCAST}/series?take=${pageSize}&page=${page}&sort=${sort || 'latest'}&sortOrder=desc&includeMeta=true`;
+    path = `/series?take=${pageSize}&page=${page}&sort=${sort || 'latest'}&sortOrder=desc&includeMeta=true`;
   }
 
-  const r = await fetch(url, { headers: KC_HEADERS, cache: 'no-store' });
+  const url = `${BASE_URL}/api/komikcast?path=${encodeURIComponent(path)}`;
+  const r = await fetch(url, { cache: 'no-store' });
   if (!r.ok) throw new Error(`Komikcast ${r.status}`);
   const j = await r.json();
 
@@ -109,16 +103,19 @@ export async function fetchKiryuu({ page, pageSize, orderby, meta_key, search })
 
 // ─── DEDUPLICATE ─────────────────────────────────────────────────────────────
 
-const PRIORITY = ['shinigami', 'komikcast', 'kiryuu'];
-
 export function deduplicate(comics) {
   const map = new Map();
-  const prioritized = [...comics].sort((a, b) =>
-    PRIORITY.indexOf(a.source) - PRIORITY.indexOf(b.source)
-  );
-  for (const c of prioritized) {
+  for (const c of comics) {
     const key = normalizeTitle(c.title);
-    if (key && !map.has(key)) map.set(key, c);
+    if (!key) continue;
+    const existing = map.get(key);
+    if (!existing) {
+      map.set(key, c);
+    } else {
+      const te = existing.updatedAt ? new Date(existing.updatedAt).getTime() : 0;
+      const tc = c.updatedAt ? new Date(c.updatedAt).getTime() : 0;
+      if (tc > te) map.set(key, c);
+    }
   }
   return [...map.values()];
 }
