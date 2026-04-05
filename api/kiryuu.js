@@ -15,9 +15,18 @@ export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
 
   try {
-    // Chapter list — return HTML, parse di sini
+    // Chapter list — resolve slug ke numeric ID kalau perlu
     if (action === 'chapter_list' && manga_id) {
-      const url = `${AJAX}?manga_id=${manga_id}&page=999&action=chapter_list`;
+      let numericId = manga_id;
+
+      if (isNaN(manga_id)) {
+        const wpRes = await fetch(`${BASE}/wp-json/wp/v2/manga?slug[]=${manga_id}&_fields=id`, { headers, cache: 'no-store' });
+        const wpData = await wpRes.json();
+        numericId = wpData?.[0]?.id;
+        if (!numericId) return res.json({ data: [] });
+      }
+
+      const url = `${AJAX}?manga_id=${numericId}&page=999&action=chapter_list`;
       const html = await fetch(url, { headers, cache: 'no-store' }).then(r => r.text());
 
       const chapters = [];
@@ -40,7 +49,7 @@ export default async function handler(req, res) {
       return res.json({ data: chapters });
     }
 
-    // WP JSON API — default ke terbaru (orderby=modified)
+    // WP JSON API
     const wpPath = path || '/wp-json/wp/v2/manga?per_page=24&page=1&orderby=modified&order=desc&_embed';
     const response = await fetch(`${BASE}${wpPath}`, { headers, cache: 'no-store' });
     const data = await response.json();
