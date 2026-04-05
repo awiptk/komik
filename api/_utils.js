@@ -88,7 +88,7 @@ export async function fetchKiryuu({ page, pageSize, orderby, meta_key, search })
   const j = await r.json();
 
   return (Array.isArray(j) ? j : []).map(item => {
-    const cls = item.class_list || [];
+    const cls = Array.isArray(item.class_list) ? item.class_list : [];
     return {
       source:    'kiryuu',
       id:        item.slug || '',
