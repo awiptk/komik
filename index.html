@@ -365,13 +365,13 @@ const PRIORITY = ['shinigami', 'komikcast', 'kiryuu'];
 const PER_PAGE = 24;
 
 // ─── STATE ───────────────────────────────────────────────────────────────────
-let currentPage = 1;
-let allComics   = [];
+let currentPage    = 1;
+let allComics      = [];
 let filteredComics = [];
-let currentManga = null;
+let currentManga   = null;
 let currentChapters = [];
-let currentChIdx = 0;
-let readerVisible = true;
+let currentChIdx   = 0;
+let readerVisible  = true;
 
 // ─── UTILS ───────────────────────────────────────────────────────────────────
 function showView(id) {
@@ -383,14 +383,9 @@ function goHome() {
   showView('home-view');
   renderGrid();
 }
-
 function normalizeTitle(t) {
-  return t.toLowerCase()
-    .replace(/[^a-z0-9\s]/g, '')
-    .replace(/\s+/g, ' ')
-    .trim();
+  return t.toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ').trim();
 }
-
 function relDate(s) {
   if (!s) return '';
   const d = Math.floor((Date.now() - new Date(s)) / 1000);
@@ -404,7 +399,8 @@ function relDate(s) {
 
 // ─── FETCH ───────────────────────────────────────────────────────────────────
 async function fetchShinigami(page) {
-  const r = await fetch(`${API.shinigami}?path=/v1/manga/list?page=${page}&page_size=${PER_PAGE}&sort=latest`);
+  const path = encodeURIComponent(`/v1/manga/list?page=${page}&page_size=${PER_PAGE}&sort=latest`);
+  const r = await fetch(`${API.shinigami}?path=${path}`, { cache: 'no-store' });
   const j = await r.json();
   return (j.data || []).map(item => ({
     source: 'shinigami',
@@ -419,7 +415,8 @@ async function fetchShinigami(page) {
 }
 
 async function fetchKomikcast(page) {
-  const r = await fetch(`${API.komikcast}?path=/series?take=${PER_PAGE}&page=${page}&sort=latest&sortOrder=desc&includeMeta=true`);
+  const path = encodeURIComponent(`/series?take=${PER_PAGE}&page=${page}&sort=latest&sortOrder=desc&includeMeta=true`);
+  const r = await fetch(`${API.komikcast}?path=${path}`, { cache: 'no-store' });
   const j = await r.json();
   return (j.data || []).map(item => ({
     source: 'komikcast',
@@ -434,7 +431,8 @@ async function fetchKomikcast(page) {
 }
 
 async function fetchKiryuu(page) {
-  const r = await fetch(`${API.kiryuu}?path=/wp-json/wp/v2/manga?per_page=${PER_PAGE}&page=${page}&orderby=modified&order=desc&_embed`);
+  const path = encodeURIComponent(`/wp-json/wp/v2/manga?per_page=${PER_PAGE}&page=${page}&orderby=modified&order=desc&_embed`);
+  const r = await fetch(`${API.kiryuu}?path=${path}`, { cache: 'no-store' });
   const j = await r.json();
   return (Array.isArray(j) ? j : []).map(item => {
     const cls = item.class_list || [];
@@ -456,7 +454,6 @@ async function fetchKiryuu(page) {
 // ─── DEDUPLICATE ─────────────────────────────────────────────────────────────
 function deduplicate(comics) {
   const map = new Map();
-  // Sort by priority first
   const prioritized = [...comics].sort((a, b) =>
     PRIORITY.indexOf(a.source) - PRIORITY.indexOf(b.source)
   );
@@ -562,8 +559,8 @@ async function loadDetail(comic) {
 
     if (comic.source === 'shinigami') {
       const [det, chs] = await Promise.all([
-        fetch(`${API.shinigami}?path=/v1/manga/detail/${comic.id}`).then(r => r.json()),
-        fetch(`${API.shinigami}?path=/v1/chapter/${comic.id}/list?page_size=3000`).then(r => r.json()),
+        fetch(`${API.shinigami}?path=${encodeURIComponent(`/v1/manga/detail/${comic.id}`)}`, { cache: 'no-store' }).then(r => r.json()),
+        fetch(`${API.shinigami}?path=${encodeURIComponent(`/v1/chapter/${comic.id}/list?page_size=3000`)}`, { cache: 'no-store' }).then(r => r.json()),
       ]);
       const d = det.data || det;
       const tax = d.taxonomy || {};
@@ -582,8 +579,8 @@ async function loadDetail(comic) {
 
     } else if (comic.source === 'komikcast') {
       const [det, chs] = await Promise.all([
-        fetch(`${API.komikcast}?path=/series/${comic.slug}`).then(r => r.json()),
-        fetch(`${API.komikcast}?path=/series/${comic.slug}/chapters`).then(r => r.json()),
+        fetch(`${API.komikcast}?path=${encodeURIComponent(`/series/${comic.slug}`)}`, { cache: 'no-store' }).then(r => r.json()),
+        fetch(`${API.komikcast}?path=${encodeURIComponent(`/series/${comic.slug}/chapters`)}`, { cache: 'no-store' }).then(r => r.json()),
       ]);
       const d = det.data?.data || det.data || {};
       cover = d.coverImage || cover;
@@ -601,14 +598,14 @@ async function loadDetail(comic) {
       }));
 
     } else if (comic.source === 'kiryuu') {
-      const det = await fetch(`${API.kiryuu}?path=/wp-json/wp/v2/manga?slug[]=${comic.slug}&_embed`).then(r => r.json());
+      const det = await fetch(`${API.kiryuu}?path=${encodeURIComponent(`/wp-json/wp/v2/manga?slug[]=${comic.slug}&_embed`)}`, { cache: 'no-store' }).then(r => r.json());
       const d = Array.isArray(det) ? det[0] : det;
       const cls = d.class_list || [];
       cover = d._embedded?.['wp:featuredmedia']?.[0]?.source_url || cover;
       status = cls.includes('status-ongoing') ? 'ongoing' : cls.includes('status-completed') ? 'completed' : '';
       desc = d.content?.rendered?.replace(/<[^>]+>/g, '') || '';
       genres = cls.filter(c => c.startsWith('genre-')).map(c => c.replace('genre-', '').replace(/-/g, ' '));
-      const chs = await fetch(`${API.kiryuu}?action=chapter_list&manga_id=${d.id}`).then(r => r.json());
+      const chs = await fetch(`${API.kiryuu}?action=chapter_list&manga_id=${d.id}`, { cache: 'no-store' }).then(r => r.json());
       chapters = (chs.data || []).map(ch => ({
         name: ch.name,
         url: ch.url,
@@ -697,13 +694,13 @@ async function loadReader(idx) {
     let images = [];
 
     if (ch.source === 'shinigami') {
-      const r = await fetch(`${API.shinigami}?path=/v1/chapter/detail/${ch.url}`);
+      const r = await fetch(`${API.shinigami}?path=${encodeURIComponent(`/v1/chapter/detail/${ch.url}`)}`, { cache: 'no-store' });
       const j = await r.json();
       images = j.data?.chapter_image || j.data?.images || [];
       images = images.map(i => i.image_url || i.url || i);
 
     } else if (ch.source === 'komikcast') {
-      const r = await fetch(`${API.komikcast}?path=/series/${ch.mangaSlug}/chapters/${ch.url}`);
+      const r = await fetch(`${API.komikcast}?path=${encodeURIComponent(`/series/${ch.mangaSlug}/chapters/${ch.url}`)}`, { cache: 'no-store' });
       const j = await r.json();
       images = j?.data?.data?.images || j?.data?.images || [];
 
@@ -743,7 +740,6 @@ async function loadReader(idx) {
 }
 
 function buildReaderUI(chName) {
-  // Top bar
   let top = document.getElementById('rdr-top');
   if (!top) { top = document.createElement('div'); top.id = 'rdr-top'; document.body.appendChild(top); }
   top.className = 'reader-top';
@@ -751,7 +747,6 @@ function buildReaderUI(chName) {
     <button class="rui-back" onclick="loadDetail(currentManga)">← Detail</button>
     <div class="rui-title">${currentManga.title} · ${chName}</div>`;
 
-  // Bottom bar
   let bot = document.getElementById('rdr-bot');
   if (!bot) { bot = document.createElement('div'); bot.id = 'rdr-bot'; document.body.appendChild(bot); }
   bot.className = 'reader-bot';
