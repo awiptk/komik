@@ -1,33 +1,41 @@
 import { KIRYUU } from './_utils.js';
 
+export const config = { runtime: 'edge' };
+
 const AJAX = `${KIRYUU}/wp-admin/admin-ajax.php`;
 
-export default async function handler(req, res) {
-  const { path, action, manga_id } = req.query;
+const headers = {
+  'Origin':     'https://v2.kiryuu.to',
+  'Referer':    'https://v2.kiryuu.to/',
+  'Accept':     'application/json, text/html',
+  'User-Agent': 'Mozilla/5.0',
+};
 
-  const headers = {
-    'Origin':     'https://v2.kiryuu.to',
-    'Referer':    'https://v2.kiryuu.to/',
-    'Accept':     'application/json, text/html',
-    'User-Agent': 'Mozilla/5.0',
-  };
-
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+export default async function handler(req) {
+  const { searchParams } = new URL(req.url);
+  const path     = searchParams.get('path');
+  const action   = searchParams.get('action');
+  const manga_id = searchParams.get('manga_id');
 
   try {
+    // Chapter list
     if (action === 'chapter_list' && manga_id) {
       let numericId = manga_id;
 
       if (isNaN(manga_id)) {
-        const wpRes = await fetch(`${KIRYUU}/wp-json/wp/v2/manga?slug[]=${manga_id}&_fields=id`, { headers, cache: 'no-store' });
+        const wpRes  = await fetch(`${KIRYUU}/wp-json/wp/v2/manga?slug[]=${manga_id}&_fields=id`, { headers });
         const wpData = await wpRes.json();
-        numericId = wpData?.[0]?.id;
-        if (!numericId) return res.json({ data: [] });
+        numericId    = wpData?.[0]?.id;
+        if (!numericId) return new Response(JSON.stringify({ data: [] }), {
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Content-Type': 'application/json',
+          },
+        });
       }
 
-      const url = `${AJAX}?manga_id=${numericId}&page=999&action=chapter_list`;
-      const html = await fetch(url, { headers, cache: 'no-store' }).then(r => r.text());
+      const url  = `${AJAX}?manga_id=${numericId}&page=999&action=chapter_list`;
+      const html = await fetch(url, { headers }).then(r => r.text());
 
       const chapters = [];
       const linkRe = /href="(https:\/\/v2\.kiryuu\.to\/manga\/[^"]+)"/g;
@@ -46,15 +54,34 @@ export default async function handler(req, res) {
         });
       });
 
-      return res.json({ data: chapters });
+      return new Response(JSON.stringify({ data: chapters }), {
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Content-Type': 'application/json',
+        },
+      });
     }
 
-    const wpPath = path || '/wp-json/wp/v2/manga?per_page=24&page=1&orderby=modified&order=desc&_embed';
-    const response = await fetch(`${KIRYUU}${wpPath}`, { headers, cache: 'no-store' });
-    const data = await response.json();
+    // WP JSON API
+    const wpPath   = path || '/wp-json/wp/v2/manga?per_page=24&page=1&orderby=modified&order=desc&_embed';
+    const response = await fetch(`${KIRYUU}${wpPath}`, { headers });
+    const data     = await response.text();
 
-    res.status(response.status).json(data);
+    return new Response(data, {
+      status: response.status,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Content-Type': 'application/json',
+      },
+    });
+
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    return new Response(JSON.stringify({ error: e.message }), {
+      status: 500,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Content-Type': 'application/json',
+      },
+    });
   }
 }
