@@ -15,14 +15,7 @@ const KRY_HEADERS = {
   'User-Agent': 'Mozilla/5.0',
 };
 
-// ─── NORMALIZER ──────────────────────────────────────────────────────────────
-
-function normalizeTitle(t) {
-  return t.toLowerCase()
-    .replace(/[^a-z0-9\s]/g, '')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
+// ─── HTML DECODER ──────────────────────────────────────────────────────────────
 
 export function decodeHtml(str) {
   return (str || '').replace(/&#(\d+);/g, (_, dec) => String.fromCharCode(dec))
@@ -31,6 +24,15 @@ export function decodeHtml(str) {
     .replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"')
     .replace(/&#039;/g, "'");
+}
+
+// ─── NORMALIZER ──────────────────────────────────────────────────────────────
+
+function normalizeTitle(t) {
+  return decodeHtml(t).toLowerCase()
+    .replace(/[^a-z0-9\s]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 // ─── FETCHERS ────────────────────────────────────────────────────────────────
