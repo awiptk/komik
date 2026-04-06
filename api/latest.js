@@ -14,9 +14,9 @@ export default async function handler(req, res) {
       fetchKiryuu({ page, pageSize, orderby: 'modified' }),
     ]);
 
-    console.log('SHN:', shn.status, shn.reason?.message);
-    console.log('KC:', kc.status, kc.reason?.message);
-    console.log('KRY:', kry.status, kry.reason?.message);
+    console.log('SHN:', shn.status, shn.status === 'rejected' ? shn.reason?.message : shn.value?.length + ' items');
+    console.log('KC:', kc.status, kc.status === 'rejected' ? kc.reason?.message : kc.value?.length + ' items');
+    console.log('KRY:', kry.status, kry.status === 'rejected' ? kry.reason?.message : kry.value?.length + ' items');
 
     const all = [
       ...(shn.status === 'fulfilled' ? shn.value : []),

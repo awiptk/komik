@@ -2,22 +2,25 @@ export const SHINIGAMI = 'https://api.shngm.io';
 export const KIRYUU    = 'https://v2.kiryuu.to';
 export const KOMIKCAST = 'https://be.komikcast.fit';
 
+const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+
 const SHN_HEADERS = {
-  'Origin':  'https://c.shinigami.asia',
-  'Referer': 'https://c.shinigami.asia/',
-  'Accept':  'application/json',
-  'User-Agent': 'Mozilla/5.0',
+  'Origin':     'https://c.shinigami.asia',
+  'Referer':    'https://c.shinigami.asia/',
+  'Accept':     'application/json',
+  'User-Agent': UA,
 };
 const KRY_HEADERS = {
-  'Origin':  'https://v2.kiryuu.to',
-  'Referer': 'https://v2.kiryuu.to/',
-  'Accept':  'application/json',
-  'User-Agent': 'Mozilla/5.0',
+  'Origin':     'https://v2.kiryuu.to',
+  'Referer':    'https://v2.kiryuu.to/',
+  'Accept':     'application/json',
+  'User-Agent': UA,
 };
 const KC_HEADERS = {
-  'Origin':  'https://v1.komikcast.fit',
-  'Referer': 'https://v1.komikcast.fit/',
-  'Accept':  'application/json',
+  'Origin':     'https://v1.komikcast.fit',
+  'Referer':    'https://v1.komikcast.fit/',
+  'Accept':     'application/json',
+  'User-Agent': UA,
 };
 
 // ─── HTML DECODER ────────────────────────────────────────────────────────────
