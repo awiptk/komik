@@ -33,9 +33,12 @@ export function decodeHtml(str) {
 
 // ─── NORMALIZER ──────────────────────────────────────────────────────────────
 
+function stripParens(t) {
+  return (t || '').replace(/\(.*?\)/g, '').replace(/\s+/g, ' ').trim();
+}
+
 function normalizeTitle(t) {
   return decodeHtml(t).toLowerCase()
-    .replace(/\(.*?\)/g, '')
     .replace(/[^a-z0-9\s]/g, '')
     .replace(/\s+/g, ' ')
     .trim();
@@ -59,7 +62,7 @@ export async function fetchShinigami({ page, pageSize, sort, query }) {
     source:    'shinigami',
     id:        item.manga_id || item.mangaId || '',
     slug:      item.manga_id || item.mangaId || '',
-    title:     item.title || '',
+    title:     stripParens(item.title || ''),
     cover:     item.cover_portrait_url || item.cover_image_url || '',
     status:    item.status === 1 ? 'ongoing' : item.status === 2 ? 'completed' : '',
     updatedAt: item.latest_chapter_time || item.updated_at || '',
@@ -84,7 +87,7 @@ export async function fetchKomikcast({ page, pageSize, sort, query }) {
     source:    'komikcast',
     id:        String(item.id || ''),
     slug:      item.data?.slug || '',
-    title:     item.data?.title || '',
+    title:     stripParens(item.data?.title || ''),
     cover:     item.data?.coverImage || '',
     status:    item.data?.status || '',
     updatedAt: item.updatedAt || '',
@@ -133,7 +136,7 @@ export async function fetchKiryuu({ page, pageSize, orderby, meta_key, search })
       source:    'kiryuu',
       id:        item.slug || '',
       slug:      item.slug || '',
-      title:     decodeHtml(item.title?.rendered || ''),
+      title:     stripParens(decodeHtml(item.title?.rendered || '')),
       cover:     item._embedded?.['wp:featuredmedia']?.[0]?.source_url || '',
       status:    cls.includes('status-ongoing') ? 'ongoing' : cls.includes('status-completed') ? 'completed' : '',
       updatedAt: chapterMap[item.slug] || '',
@@ -143,11 +146,9 @@ export async function fetchKiryuu({ page, pageSize, orderby, meta_key, search })
 }
 
 // ─── DEDUPLICATE ─────────────────────────────────────────────────────────────
-// Hanya dedup berdasarkan normalized title exact match.
-// Tidak ada fuzzy, tidak ada altTitles — tampil apa adanya.
 
 export function deduplicate(comics) {
-  const seen = new Map(); // normalizedTitle → index in result
+  const seen = new Map();
 
   const result = [];
   for (const c of comics) {
@@ -161,7 +162,6 @@ export function deduplicate(comics) {
       seen.set(key, result.length);
       result.push(c);
     } else {
-      // Kalau duplikat, yang updatedAt lebih baru menang
       const idx = seen.get(key);
       const te = result[idx].updatedAt ? new Date(result[idx].updatedAt).getTime() : 0;
       const tc = c.updatedAt ? new Date(c.updatedAt).getTime() : 0;
