@@ -24,7 +24,7 @@ function normalizeTitle(t) {
     .trim();
 }
 
-function decodeHtml(str) {
+export function decodeHtml(str) {
   return (str || '').replace(/&#(\d+);/g, (_, dec) => String.fromCharCode(dec))
     .replace(/&amp;/g, '&')
     .replace(/&lt;/g, '<')
