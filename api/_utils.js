@@ -156,7 +156,7 @@ export async function fetchKiryuu({ page, pageSize, orderby, meta_key, search })
 // (mis. beda terjemahan antar sumber) tetap dianggap duplikat.
 // THRESHOLD: 0.0–1.0, makin tinggi makin ketat (default 0.55)
 
-const THRESHOLD = 0.7;
+const THRESHOLD = 2;
 
 export function deduplicate(comics) {
   const groups = []; // tiap elemen: [normalized_key, comic]
