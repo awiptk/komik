@@ -48,7 +48,7 @@ function parseAltTitles(str) {
   if (!str) return [];
   return str.split(/[\/,]/)
     .map(t => normalizeTitle(t.trim()))
-    .filter(t => t.length > 3);
+    .filter(t => t.split(' ').filter(w => w.length > 2).length >= 3);
 }
 
 // ─── FETCHERS ────────────────────────────────────────────────────────────────
