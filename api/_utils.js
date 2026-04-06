@@ -35,6 +35,7 @@ export function decodeHtml(str) {
 
 function normalizeTitle(t) {
   return decodeHtml(t).toLowerCase()
+    .replace(/\(.*?\)/g, '')
     .replace(/[^a-z0-9\s]/g, '')
     .replace(/\s+/g, ' ')
     .trim();
