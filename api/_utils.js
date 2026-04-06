@@ -40,6 +40,16 @@ function normalizeTitle(t) {
     .trim();
 }
 
+// ─── SIMILARITY (token overlap / Jaccard) ────────────────────────────────────
+
+function similarity(a, b) {
+  const wordsA = new Set(a.split(' ').filter(w => w.length > 2));
+  const wordsB = new Set(b.split(' ').filter(w => w.length > 2));
+  const intersection = [...wordsA].filter(w => wordsB.has(w)).length;
+  const union = new Set([...wordsA, ...wordsB]).size;
+  return union === 0 ? 0 : intersection / union;
+}
+
 // ─── FETCHERS ────────────────────────────────────────────────────────────────
 
 export async function fetchShinigami({ page, pageSize, sort, query }) {
@@ -141,21 +151,37 @@ export async function fetchKiryuu({ page, pageSize, orderby, meta_key, search })
   });
 }
 
-// ─── DEDUPLICATE ─────────────────────────────────────────────────────────────
+// ─── DEDUPLICATE (fuzzy matching) ─────────────────────────────────────────────
+// Menggunakan Jaccard token overlap agar judul yang sedikit berbeda
+// (mis. beda terjemahan antar sumber) tetap dianggap duplikat.
+// THRESHOLD: 0.0–1.0, makin tinggi makin ketat (default 0.55)
+
+const THRESHOLD = 0.55;
 
 export function deduplicate(comics) {
-  const map = new Map();
+  const groups = []; // tiap elemen: [normalized_key, comic]
+
   for (const c of comics) {
     const key = normalizeTitle(c.title);
     if (!key) continue;
-    const existing = map.get(key);
-    if (!existing) {
-      map.set(key, c);
-    } else {
-      const te = existing.updatedAt ? new Date(existing.updatedAt).getTime() : Infinity;
-      const tc = c.updatedAt ? new Date(c.updatedAt).getTime() : Infinity;
-      if (tc < te) map.set(key, c);
+
+    let matched = -1;
+    let bestScore = 0;
+
+    for (let i = 0; i < groups.length; i++) {
+      const score = similarity(key, groups[i][0]);
+      if (score > THRESHOLD && score > bestScore) {
+        bestScore = score;
+        matched = i;
+      }
     }
+
+    if (matched === -1) {
+      // Komik baru, tambah ke list
+      groups.push([key, c]);
+    }
+    // Duplikat — skip, pertahankan yang pertama masuk
   }
-  return [...map.values()];
+
+  return groups.map(g => g[1]);
 }
