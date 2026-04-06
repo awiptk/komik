@@ -1,4 +1,4 @@
-import { KIRYUU } from './_utils.js';
+import { KIRYUU, decodeHtml } from './_utils.js';
 
 export const config = { runtime: 'edge' };
 
@@ -75,6 +75,10 @@ export default async function handler(req) {
         : item.class_list && typeof item.class_list === 'object'
           ? Object.values(item.class_list)
           : [],
+      title: {
+        ...item.title,
+        rendered: decodeHtml(item.title?.rendered || ''),
+      },
     })) : data;
 
     return new Response(JSON.stringify(fixed), {
