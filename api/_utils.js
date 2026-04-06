@@ -113,7 +113,7 @@ export async function fetchKiryuu({ page, pageSize, orderby, meta_key, search })
       title:      decodeHtml(item.title?.rendered || ''),
       cover:     item._embedded?.['wp:featuredmedia']?.[0]?.source_url || '',
       status:    cls.includes('status-ongoing') ? 'ongoing' : cls.includes('status-completed') ? 'completed' : '',
-      updatedAt: item.modified ? item.modified + '+07:00' : '',
+      updatedAt: item.modified_gmt ? item.modified_gmt + 'Z' : '',
       url:       `https://v2.kiryuu.to/manga/${item.slug || ''}`,
     };
   });
