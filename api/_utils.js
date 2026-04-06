@@ -82,7 +82,7 @@ export async function fetchKomikcast({ page, pageSize, sort, query }) {
     const filter = `title=like="${encodeURIComponent(query)}",nativeTitle=like="${encodeURIComponent(query)}"`;
     path = `/series?take=${pageSize}&page=${page}&includeMeta=true&filter=${filter}`;
   } else {
-    path = `/series?take=${pageSize}&page=${page}&sort=${sort || 'latest'}&sortOrder=desc&includeMeta=true`;
+    path = `/series?take=${pageSize}&page=${page}&sort=${sort || 'updatedAt'}&sortOrder=desc&includeMeta=true`;
   }
 
   const r = await fetch(`${KOMIKCAST}${path}`, { headers: KC_HEADERS, cache: 'no-store' });
@@ -156,7 +156,7 @@ export async function fetchKiryuu({ page, pageSize, orderby, meta_key, search })
 // (mis. beda terjemahan antar sumber) tetap dianggap duplikat.
 // THRESHOLD: 0.0–1.0, makin tinggi makin ketat (default 0.55)
 
-const THRESHOLD = 2;
+const THRESHOLD = 0.55;
 
 export function deduplicate(comics) {
   const groups = []; // tiap elemen: [normalized_key, comic]
