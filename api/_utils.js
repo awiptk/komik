@@ -182,8 +182,10 @@ export function deduplicate(comics) {
     } else {
       // Duplikat — updatedAt terbaru menang
       const existing = groups[matched][1];
-      const te = existing.updatedAt ? new Date(existing.updatedAt).getTime() : 0;
-      const tc = c.updatedAt       ? new Date(c.updatedAt).getTime()       : 0;
+      const te = existing.updatedAt && !isNaN(new Date(existing.updatedAt))
+        ? new Date(existing.updatedAt).getTime() : 0;
+      const tc = c.updatedAt && !isNaN(new Date(c.updatedAt))
+        ? new Date(c.updatedAt).getTime() : 0;
       if (tc > te) groups[matched][1] = c;
     }
   }
