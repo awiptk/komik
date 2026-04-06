@@ -8,10 +8,9 @@ export default async function handler(req) {
 
   const response = await fetch(`${KOMIKCAST}${path}`, {
     headers: {
-      'Origin':        'https://v1.komikcast.fit',
-      'Referer':       'https://v1.komikcast.fit/',
-      'Accept':        'application/json',
-      'Authorization': `Bearer ${process.env.KOMIKCAST_TOKEN}`,
+      'Origin':  'https://v1.komikcast.fit',
+      'Referer': 'https://v1.komikcast.fit/',
+      'Accept':  'application/json',
     },
   });
 
