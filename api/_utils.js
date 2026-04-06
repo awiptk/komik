@@ -24,6 +24,15 @@ function normalizeTitle(t) {
     .trim();
 }
 
+function decodeHtml(str) {
+  return (str || '').replace(/&#(\d+);/g, (_, dec) => String.fromCharCode(dec))
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#039;/g, "'");
+}
+
 // ─── FETCHERS ────────────────────────────────────────────────────────────────
 
 export async function fetchShinigami({ page, pageSize, sort, query }) {
@@ -99,7 +108,7 @@ export async function fetchKiryuu({ page, pageSize, orderby, meta_key, search })
       source:    'kiryuu',
       id:        item.slug || '',
       slug:      item.slug || '',
-      title:     item.title?.rendered || '',
+      title:      decodeHtml(item.title?.rendered || ''),
       cover:     item._embedded?.['wp:featuredmedia']?.[0]?.source_url || '',
       status:    cls.includes('status-ongoing') ? 'ongoing' : cls.includes('status-completed') ? 'completed' : '',
       updatedAt: item.modified ? item.modified + '+07:00' : '',
