@@ -4,7 +4,6 @@ export default async function handler(req, res) {
   const page     = parseInt(req.query.page || '1');
   const pageSize = parseInt(req.query.page_size || '24');
 
-  res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
 
   try {
