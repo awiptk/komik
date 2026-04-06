@@ -179,13 +179,8 @@ export function deduplicate(comics) {
     if (matched === -1) {
       // Komik baru, tambah ke list
       groups.push([key, c]);
-    } else {
-      // Duplikat — ambil yang updatedAt lebih lama (logika asli)
-      const existing = groups[matched][1];
-      const te = existing.updatedAt ? new Date(existing.updatedAt).getTime() : Infinity;
-      const tc = c.updatedAt       ? new Date(c.updatedAt).getTime()       : Infinity;
-      if (tc < te) groups[matched][1] = c;
     }
+    // Duplikat — yang kedua datang diabaikan, yang pertama masuk tetap dipakai
   }
 
   return groups.map(g => g[1]);
