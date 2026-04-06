@@ -13,43 +13,53 @@ export default async function handler(req, res) {
       },
     });
 
-    // Ambil response sebagai JSON
+    const rawText = await response.text();
     let jsonData;
-    const text = await response.text();
     try {
-      jsonData = JSON.parse(text);
+      jsonData = JSON.parse(rawText);
     } catch (e) {
+      console.error('JSON parse error:', e.message);
       return res.status(500).json({ error: 'Invalid JSON from upstream' });
     }
 
-    // Fungsi transformasi rekursif
-    function transform(obj) {
+    // === TRANSFORMASI WAJIB ===
+    function transformIndexToString(obj) {
       if (obj === null || typeof obj !== 'object') return obj;
       if (Array.isArray(obj)) {
-        return obj.map(transform);
+        return obj.map(transformIndexToString);
       }
       const newObj = {};
       for (const [key, value] of Object.entries(obj)) {
         if (key === 'index' && (typeof value === 'number' || typeof value === 'string')) {
-          // Ubah index menjadi string
+          // UBAH INDEX MENJADI STRING
           newObj[key] = String(value);
         } 
         else if (key === 'title' && value === 'null') {
-          // Ubah string literal "null" menjadi null sebenarnya
+          // UBAH STRING LITERAL "null" MENJADI null ASLI
           newObj[key] = null;
         }
         else {
-          newObj[key] = transform(value);
+          newObj[key] = transformIndexToString(value);
         }
       }
       return newObj;
     }
 
-    const transformed = transform(jsonData);
+    const transformed = transformIndexToString(jsonData);
+
+    // Log untuk memastikan transformasi berhasil
+    if (transformed.data && transformed.data.length > 0) {
+      console.log('Sample transformed chapter:', {
+        index: transformed.data[0].data?.index,
+        indexType: typeof transformed.data[0].data?.index,
+        title: transformed.data[0].data?.title,
+      });
+    }
 
     res.setHeader('Content-Type', 'application/json');
     res.status(response.status).json(transformed);
   } catch (e) {
+    console.error('Handler error:', e);
     res.status(500).json({ error: e.message });
   }
 }
