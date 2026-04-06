@@ -3,19 +3,24 @@ export const KIRYUU    = 'https://v2.kiryuu.to';
 export const KOMIKCAST = 'https://be.komikcast.fit';
 
 const SHN_HEADERS = {
-  'Origin':     'https://c.shinigami.asia',
-  'Referer':    'https://c.shinigami.asia/',
-  'Accept':     'application/json',
+  'Origin':  'https://c.shinigami.asia',
+  'Referer': 'https://c.shinigami.asia/',
+  'Accept':  'application/json',
   'User-Agent': 'Mozilla/5.0',
 };
 const KRY_HEADERS = {
-  'Origin':     'https://v2.kiryuu.to',
-  'Referer':    'https://v2.kiryuu.to/',
-  'Accept':     'application/json',
+  'Origin':  'https://v2.kiryuu.to',
+  'Referer': 'https://v2.kiryuu.to/',
+  'Accept':  'application/json',
   'User-Agent': 'Mozilla/5.0',
 };
+const KC_HEADERS = {
+  'Origin':  'https://v1.komikcast.fit',
+  'Referer': 'https://v1.komikcast.fit/',
+  'Accept':  'application/json',
+};
 
-// ─── HTML DECODER ──────────────────────────────────────────────────────────────
+// ─── HTML DECODER ────────────────────────────────────────────────────────────
 
 export function decodeHtml(str) {
   return (str || '').replace(/&#(\d+);/g, (_, dec) => String.fromCharCode(dec))
@@ -56,7 +61,7 @@ export async function fetchShinigami({ page, pageSize, sort, query }) {
     title:     item.title || '',
     cover:     item.cover_portrait_url || item.cover_image_url || '',
     status:    item.status === 1 ? 'ongoing' : item.status === 2 ? 'completed' : '',
-    updatedAt: item.updated_at || item.updatedAt || '',
+    updatedAt: item.latest_chapter_time || item.updated_at || '',
     url:       `https://c.shinigami.asia/series/${item.manga_id || item.mangaId || ''}`,
   }));
 }
@@ -70,8 +75,7 @@ export async function fetchKomikcast({ page, pageSize, sort, query }) {
     path = `/series?take=${pageSize}&page=${page}&sort=${sort || 'latest'}&sortOrder=desc&includeMeta=true`;
   }
 
-  const url = `https://komik-mauve.vercel.app/api/komikcast?path=${encodeURIComponent(path)}`;
-  const r = await fetch(url, { cache: 'no-store' });
+  const r = await fetch(`${KOMIKCAST}${path}`, { headers: KC_HEADERS, cache: 'no-store' });
   if (!r.ok) throw new Error(`Komikcast ${r.status}`);
   const j = await r.json();
 
@@ -96,9 +100,27 @@ export async function fetchKiryuu({ page, pageSize, orderby, meta_key, search })
     if (meta_key) url += `&meta_key=${meta_key}`;
   }
 
-  const r = await fetch(url, { headers: KRY_HEADERS, cache: 'no-store' });
-  if (!r.ok) throw new Error(`Kiryuu ${r.status}`);
-  const j = await r.json();
+  const [mangaRes, chapterRes] = await Promise.all([
+    fetch(url, { headers: KRY_HEADERS, cache: 'no-store' }),
+    fetch(`${KIRYUU}/wp-json/wp/v2/chapter?per_page=50&orderby=date&order=desc`, { headers: KRY_HEADERS, cache: 'no-store' }),
+  ]);
+
+  if (!mangaRes.ok) throw new Error(`Kiryuu ${mangaRes.status}`);
+
+  const j = await mangaRes.json();
+
+  const chapterMap = {};
+  if (chapterRes.ok) {
+    const chapters = await chapterRes.json();
+    for (const ch of chapters) {
+      const slug = ch.slug || '';
+      const date = ch.date_gmt || '';
+      const mangaSlug = slug.replace(/-chapter-[\d-]+$/, '');
+      if (!chapterMap[mangaSlug]) {
+        chapterMap[mangaSlug] = date + 'Z';
+      }
+    }
+  }
 
   return (Array.isArray(j) ? j : []).map(item => {
     const cls = Array.isArray(item.class_list)
@@ -110,10 +132,10 @@ export async function fetchKiryuu({ page, pageSize, orderby, meta_key, search })
       source:    'kiryuu',
       id:        item.slug || '',
       slug:      item.slug || '',
-      title:      decodeHtml(item.title?.rendered || ''),
+      title:     decodeHtml(item.title?.rendered || ''),
       cover:     item._embedded?.['wp:featuredmedia']?.[0]?.source_url || '',
       status:    cls.includes('status-ongoing') ? 'ongoing' : cls.includes('status-completed') ? 'completed' : '',
-      updatedAt: item.modified_gmt ? item.modified_gmt + 'Z' : '',
+      updatedAt: chapterMap[item.slug] || '9999-12-31T00:00:00Z',
       url:       `https://v2.kiryuu.to/manga/${item.slug || ''}`,
     };
   });
@@ -132,7 +154,6 @@ export function deduplicate(comics) {
     } else {
       const te = existing.updatedAt ? new Date(existing.updatedAt).getTime() : Infinity;
       const tc = c.updatedAt ? new Date(c.updatedAt).getTime() : Infinity;
-      // Pilih yang updatedAt paling kecil (paling duluan sampai)
       if (tc < te) map.set(key, c);
     }
   }
