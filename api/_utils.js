@@ -145,7 +145,7 @@ export async function fetchKiryuu({ page, pageSize, orderby, meta_key, search })
       title:     decodeHtml(item.title?.rendered || ''),
       cover:     item._embedded?.['wp:featuredmedia']?.[0]?.source_url || '',
       status:    cls.includes('status-ongoing') ? 'ongoing' : cls.includes('status-completed') ? 'completed' : '',
-      updatedAt: chapterMap[item.slug] || '9999-12-31T00:00:00Z',
+      updatedAt: chapterMap[item.slug] || '',
       url:       `https://v2.kiryuu.to/manga/${item.slug || ''}`,
     };
   });
@@ -179,8 +179,13 @@ export function deduplicate(comics) {
     if (matched === -1) {
       // Komik baru, tambah ke list
       groups.push([key, c]);
+    } else {
+      // Duplikat — updatedAt terbaru menang
+      const existing = groups[matched][1];
+      const te = existing.updatedAt ? new Date(existing.updatedAt).getTime() : 0;
+      const tc = c.updatedAt       ? new Date(c.updatedAt).getTime()       : 0;
+      if (tc > te) groups[matched][1] = c;
     }
-    // Duplikat — yang kedua datang diabaikan, yang pertama masuk tetap dipakai
   }
 
   return groups.map(g => g[1]);
