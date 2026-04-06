@@ -40,14 +40,15 @@ function normalizeTitle(t) {
     .trim();
 }
 
-// ─── SIMILARITY (token overlap / Jaccard) ────────────────────────────────────
+// ─── PARSE ALT TITLES ────────────────────────────────────────────────────────
+// Split string judul alternatif berdasarkan pemisah umum (/ atau ,)
+// lalu normalize tiap judul, buang yang kosong atau non-latin pendek
 
-function similarity(a, b) {
-  const wordsA = new Set(a.split(' ').filter(w => w.length > 2));
-  const wordsB = new Set(b.split(' ').filter(w => w.length > 2));
-  const intersection = [...wordsA].filter(w => wordsB.has(w)).length;
-  const union = new Set([...wordsA, ...wordsB]).size;
-  return union === 0 ? 0 : intersection / union;
+function parseAltTitles(str) {
+  if (!str) return [];
+  return str.split(/[\/,]/)
+    .map(t => normalizeTitle(t.trim()))
+    .filter(t => t.length > 3);
 }
 
 // ─── FETCHERS ────────────────────────────────────────────────────────────────
@@ -65,14 +66,15 @@ export async function fetchShinigami({ page, pageSize, sort, query }) {
   const j = await r.json();
 
   return (j.data || []).map(item => ({
-    source:    'shinigami',
-    id:        item.manga_id || item.mangaId || '',
-    slug:      item.manga_id || item.mangaId || '',
-    title:     item.title || '',
-    cover:     item.cover_portrait_url || item.cover_image_url || '',
-    status:    item.status === 1 ? 'ongoing' : item.status === 2 ? 'completed' : '',
-    updatedAt: item.latest_chapter_time || item.updated_at || '',
-    url:       `https://c.shinigami.asia/series/${item.manga_id || item.mangaId || ''}`,
+    source:     'shinigami',
+    id:         item.manga_id || item.mangaId || '',
+    slug:       item.manga_id || item.mangaId || '',
+    title:      item.title || '',
+    altTitles:  parseAltTitles(item.alternative_title || ''),
+    cover:      item.cover_portrait_url || item.cover_image_url || '',
+    status:     item.status === 1 ? 'ongoing' : item.status === 2 ? 'completed' : '',
+    updatedAt:  item.latest_chapter_time || item.updated_at || '',
+    url:        `https://c.shinigami.asia/series/${item.manga_id || item.mangaId || ''}`,
   }));
 }
 
@@ -90,14 +92,15 @@ export async function fetchKomikcast({ page, pageSize, sort, query }) {
   const j = await r.json();
 
   return (j.data || []).map(item => ({
-    source:    'komikcast',
-    id:        String(item.id || ''),
-    slug:      item.data?.slug || '',
-    title:     item.data?.title || '',
-    cover:     item.data?.coverImage || '',
-    status:    item.data?.status || '',
-    updatedAt: item.updatedAt || '',
-    url:       `https://v1.komikcast.fit/series/${item.data?.slug || ''}`,
+    source:     'komikcast',
+    id:         String(item.id || ''),
+    slug:       item.data?.slug || '',
+    title:      item.data?.title || '',
+    altTitles:  parseAltTitles(item.data?.nativeTitle || ''),
+    cover:      item.data?.coverImage || '',
+    status:     item.data?.status || '',
+    updatedAt:  item.updatedAt || '',
+    url:        `https://v1.komikcast.fit/series/${item.data?.slug || ''}`,
   }));
 }
 
@@ -139,56 +142,59 @@ export async function fetchKiryuu({ page, pageSize, orderby, meta_key, search })
         ? Object.values(item.class_list)
         : [];
     return {
-      source:    'kiryuu',
-      id:        item.slug || '',
-      slug:      item.slug || '',
-      title:     decodeHtml(item.title?.rendered || ''),
-      cover:     item._embedded?.['wp:featuredmedia']?.[0]?.source_url || '',
-      status:    cls.includes('status-ongoing') ? 'ongoing' : cls.includes('status-completed') ? 'completed' : '',
-      updatedAt: chapterMap[item.slug] || '',
-      url:       `https://v2.kiryuu.to/manga/${item.slug || ''}`,
+      source:     'kiryuu',
+      id:         item.slug || '',
+      slug:       item.slug || '',
+      title:      decodeHtml(item.title?.rendered || ''),
+      altTitles:  parseAltTitles(item.metadata?.meta?.alternative_title || ''),
+      cover:      item._embedded?.['wp:featuredmedia']?.[0]?.source_url || '',
+      status:     cls.includes('status-ongoing') ? 'ongoing' : cls.includes('status-completed') ? 'completed' : '',
+      updatedAt:  chapterMap[item.slug] || '',
+      url:        `https://v2.kiryuu.to/manga/${item.slug || ''}`,
     };
   });
 }
 
-// ─── DEDUPLICATE (fuzzy matching) ─────────────────────────────────────────────
-// Menggunakan Jaccard token overlap agar judul yang sedikit berbeda
-// (mis. beda terjemahan antar sumber) tetap dianggap duplikat.
-// THRESHOLD: 0.0–1.0, makin tinggi makin ketat (default 0.55)
-
-const THRESHOLD = 0.7;
+// ─── DEDUPLICATE (alt title matching) ────────────────────────────────────────
+// Match berdasarkan title atau altTitles — tanpa fuzzy.
+// Kalau ada satu judul yang sama persis antar komik → duplikat.
 
 export function deduplicate(comics) {
-  const groups = []; // tiap elemen: [normalized_key, comic]
+  const groups = []; // tiap elemen: { keys: Set<string>, comic }
 
   for (const c of comics) {
-    const key = normalizeTitle(c.title);
-    if (!key) continue;
+    const mainKey = normalizeTitle(c.title);
+    if (!mainKey) continue;
 
+    // Kumpulkan semua judul komik ini
+    const keys = new Set([mainKey, ...c.altTitles]);
+
+    // Cari group yang punya irisan judul
     let matched = -1;
-    let bestScore = 0;
-
     for (let i = 0; i < groups.length; i++) {
-      const score = similarity(key, groups[i][0]);
-      if (score > THRESHOLD && score > bestScore) {
-        bestScore = score;
-        matched = i;
+      for (const k of keys) {
+        if (k && groups[i].keys.has(k)) {
+          matched = i;
+          break;
+        }
       }
+      if (matched !== -1) break;
     }
 
     if (matched === -1) {
-      // Komik baru, tambah ke list
-      groups.push([key, c]);
+      // Komik baru
+      groups.push({ keys, comic: c });
     } else {
-      // Duplikat — updatedAt terbaru menang
-      const existing = groups[matched][1];
+      // Duplikat — merge keys, updatedAt terbaru menang
+      for (const k of keys) groups[matched].keys.add(k);
+      const existing = groups[matched].comic;
       const te = existing.updatedAt && !isNaN(new Date(existing.updatedAt))
         ? new Date(existing.updatedAt).getTime() : 0;
       const tc = c.updatedAt && !isNaN(new Date(c.updatedAt))
         ? new Date(c.updatedAt).getTime() : 0;
-      if (tc > te) groups[matched][1] = c;
+      if (tc > te) groups[matched].comic = c;
     }
   }
 
-  return groups.map(g => g[1]);
+  return groups.map(g => g.comic);
 }
