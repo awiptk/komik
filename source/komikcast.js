@@ -14,6 +14,7 @@ export default async function handler(req, res) {
     });
 
     const data = await response.text();
+
     res.setHeader('Content-Type', 'application/json');
     res.status(response.status).send(data);
   } catch (e) {
